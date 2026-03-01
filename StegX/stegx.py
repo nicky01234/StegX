@@ -3,8 +3,6 @@
 from colorama import Fore, Style
 from modules import image, audio, text
 
-VERSION = "1.0.0"
-
 def banner():
     with open("assets/banner.txt", "r") as f:
         print(Fore.GREEN + f.read())
@@ -15,12 +13,12 @@ def main_menu():
     print("2) Audio Steganography")
     print("3) Text Steganography")
     print("0) Exit")
-    return input("\nSelect option: ")
+    return input("Select option: ")
 
-def sub_menu():
+def operation_menu():
     print("\n1) Embed")
     print("2) Extract")
-    return input("Select option: ")
+    return input("Select operation: ")
 
 def main():
     banner()
@@ -29,25 +27,25 @@ def main():
         choice = main_menu()
 
         if choice == "1":
-            action = sub_menu()
-            if action == "1":
-                image.embed_image()
-            elif action == "2":
-                image.extract_image()
+            op = operation_menu()
+            if op == "1":
+                image.embed()
+            elif op == "2":
+                image.extract()
 
         elif choice == "2":
-            action = sub_menu()
-            if action == "1":
-                audio.embed_audio()
-            elif action == "2":
-                audio.extract_audio()
+            op = operation_menu()
+            if op == "1":
+                audio.embed()
+            elif op == "2":
+                audio.extract()
 
         elif choice == "3":
-            action = sub_menu()
-            if action == "1":
-                text.embed_text()
-            elif action == "2":
-                text.extract_text()
+            op = operation_menu()
+            if op == "1":
+                text.embed()
+            elif op == "2":
+                text.extract()
 
         elif choice == "0":
             print("Exiting StegX...")
