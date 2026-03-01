@@ -1,43 +1,53 @@
 import wave
+import numpy as np
 
-def embed_audio():
-    input_audio = input("Enter input WAV file: ")
-    output_audio = input("Enter output WAV file: ")
+def embed():
+    input_audio = input("Enter input WAV file path: ")
+    output_audio = input("Enter output WAV file path: ")
     message = input("Enter secret message: ")
 
-    song = wave.open(input_audio, mode='rb')
-    frame_bytes = bytearray(list(song.readframes(song.getnframes())))
+    with wave.open(input_audio, 'rb') as wf:
+        params = wf.getparams()
+        frames = wf.readframes(wf.getnframes())
 
-    binary = ''.join(format(ord(c), '08b') for c in message)
-    binary += '1111111111111110'
+    samples = np.frombuffer(frames, dtype=np.int16)
 
-    for i in range(len(binary)):
-        frame_bytes[i] = (frame_bytes[i] & 254) | int(binary[i])
+    bits = []
+    for char in message:
+        for i in range(8):
+            bits.append((ord(char) >> (7 - i)) & 1)
 
-    with wave.open(output_audio, 'wb') as fd:
-        fd.setparams(song.getparams())
-        fd.writeframes(frame_bytes)
+    bits += [0]*8
 
-    song.close()
+    if len(bits) > len(samples):
+        print("Audio file too small!")
+        return
+
+    for i in range(len(bits)):
+        samples[i] = (samples[i] & ~1) | bits[i]
+
+    with wave.open(output_audio, 'wb') as wf:
+        wf.setparams(params)
+        wf.writeframes(samples.tobytes())
+
     print("Message embedded successfully!")
 
-def extract_audio():
-    input_audio = input("Enter stego WAV file: ")
+def extract():
+    input_audio = input("Enter stego WAV file path: ")
 
-    song = wave.open(input_audio, mode='rb')
-    frame_bytes = bytearray(list(song.readframes(song.getnframes())))
+    with wave.open(input_audio, 'rb') as wf:
+        frames = wf.readframes(wf.getnframes())
 
-    binary = ""
-    for byte in frame_bytes:
-        binary += str(byte & 1)
+    samples = np.frombuffer(frames, dtype=np.int16)
+    bits = [sample & 1 for sample in samples]
 
-    bytes_data = [binary[i:i+8] for i in range(0, len(binary), 8)]
-    message = ""
-
-    for byte in bytes_data:
-        if byte == '11111110':
+    chars = []
+    for i in range(0, len(bits), 8):
+        byte = 0
+        for b in bits[i:i+8]:
+            byte = (byte << 1) | b
+        if byte == 0:
             break
-        message += chr(int(byte, 2))
+        chars.append(chr(byte))
 
-    song.close()
-    print("Extracted message:", message)
+    print("Extracted message:", "".join(chars))
