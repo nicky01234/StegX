@@ -1,0 +1,6 @@
+pillow
+cryptography
+numpy
+colorama
+opencv-python
+
