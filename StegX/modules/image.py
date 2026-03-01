@@ -1,51 +1,50 @@
 from PIL import Image
+import numpy as np
 
-def embed_image():
-    input_img = input("Enter input PNG/BMP image: ")
-    output_img = input("Enter output image name: ")
+def embed():
+    input_img = input("Enter input image path: ")
+    output_img = input("Enter output image path: ")
     message = input("Enter secret message: ")
 
     img = Image.open(input_img)
-    pixels = img.load()
+    data = np.array(img)
+    flat = data.flatten()
 
-    binary = ''.join(format(ord(c), '08b') for c in message) + '1111111111111110'
+    bits = []
+    for char in message:
+        for i in range(8):
+            bits.append((ord(char) >> (7 - i)) & 1)
 
-    data_index = 0
-    width, height = img.size
+    bits += [0]*8  # end marker
 
-    for y in range(height):
-        for x in range(width):
-            if data_index < len(binary):
-                r, g, b = pixels[x, y]
-                r = (r & ~1) | int(binary[data_index])
-                data_index += 1
-                pixels[x, y] = (r, g, b)
-            else:
-                break
+    if len(bits) > len(flat):
+        print("Image too small!")
+        return
 
-    img.save(output_img)
+    for i in range(len(bits)):
+        flat[i] = (flat[i] & 0xFE) | bits[i]
+
+    new_data = flat.reshape(data.shape)
+    Image.fromarray(new_data.astype('uint8')).save(output_img)
+
     print("Message embedded successfully!")
 
-def extract_image():
-    input_img = input("Enter stego image: ")
+def extract():
+    input_img = input("Enter stego image path: ")
 
     img = Image.open(input_img)
-    pixels = img.load()
+    data = np.array(img)
+    flat = data.flatten()
 
-    binary = ""
-    width, height = img.size
+    bits = [pixel & 1 for pixel in flat]
 
-    for y in range(height):
-        for x in range(width):
-            r, g, b = pixels[x, y]
-            binary += str(r & 1)
-
-    bytes_data = [binary[i:i+8] for i in range(0, len(binary), 8)]
-    message = ""
-
-    for byte in bytes_data:
-        if byte == '11111110':
+    chars = []
+    for i in range(0, len(bits), 8):
+        byte = 0
+        for b in bits[i:i+8]:
+            byte = (byte << 1) | b
+        if byte == 0:
             break
-        message += chr(int(byte, 2))
+        chars.append(chr(byte))
 
-    print("Extracted message:", message)
+    print("Extracted message:", "".join(chars))
