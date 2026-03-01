@@ -1,24 +1,30 @@
-def embed_text():
-    input_file = input("Enter input text file: ")
-    output_file = input("Enter output text file: ")
+def embed():
+    cover_file = input("Enter cover text file path: ")
+    output_file = input("Enter output text file path: ")
     message = input("Enter secret message: ")
 
     zero = '\u200b'
     one = '\u200c'
 
-    binary = ''.join(format(ord(c), '08b') for c in message)
-    hidden = ''.join(zero if b == '0' else one for b in binary)
+    bits = []
+    for char in message:
+        for i in range(8):
+            bits.append((ord(char) >> (7 - i)) & 1)
 
-    with open(input_file, 'r', encoding='utf-8') as f:
-        content = f.read()
+    bits += [0]*8
+
+    hidden = ''.join([zero if b == 0 else one for b in bits])
+
+    with open(cover_file, 'r', encoding='utf-8') as f:
+        text = f.read()
 
     with open(output_file, 'w', encoding='utf-8') as f:
-        f.write(content + hidden)
+        f.write(text + hidden)
 
     print("Message embedded successfully!")
 
-def extract_text():
-    input_file = input("Enter stego text file: ")
+def extract():
+    input_file = input("Enter stego text file path: ")
 
     zero = '\u200b'
     one = '\u200c'
@@ -26,17 +32,20 @@ def extract_text():
     with open(input_file, 'r', encoding='utf-8') as f:
         content = f.read()
 
-    binary = ""
+    bits = []
     for char in content:
         if char == zero:
-            binary += '0'
+            bits.append(0)
         elif char == one:
-            binary += '1'
+            bits.append(1)
 
-    bytes_data = [binary[i:i+8] for i in range(0, len(binary), 8)]
-    message = ""
+    chars = []
+    for i in range(0, len(bits), 8):
+        byte = 0
+        for b in bits[i:i+8]:
+            byte = (byte << 1) | b
+        if byte == 0:
+            break
+        chars.append(chr(byte))
 
-    for byte in bytes_data:
-        message += chr(int(byte, 2))
-
-    print("Extracted message:", message)
+    print("Extracted message:", "".join(chars))
